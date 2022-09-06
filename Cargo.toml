@@ -1,0 +1,7 @@
+[package]
+name = "ruinaio"
+version = "0.1.0"
+authors = ["frostu8 <frostu8@protonmail.com>"]
+edition = "2021"
+
+[dependencies]
