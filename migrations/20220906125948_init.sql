@@ -2,7 +2,7 @@
 CREATE TABLE node (
     id SERIAL PRIMARY KEY,
     title VARCHAR(256) NOT NULL,
-    content TEXT NOT NULL
+    body TEXT NOT NULL
 );
 
 -- Relationships

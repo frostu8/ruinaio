@@ -5,3 +5,13 @@ authors = ["frostu8 <frostu8@protonmail.com>"]
 edition = "2021"
 
 [dependencies]
+actix-web = "4.1"
+sqlx = { version = "0.6.1", features = ["runtime-actix-rustls", "postgres"] }
+anyhow = "1.0"
+log = "0.4"
+dotenv = "0.15"
+ruinaio-model = { path = "model" }
+
+[workspace]
+members = ["model"]
+
