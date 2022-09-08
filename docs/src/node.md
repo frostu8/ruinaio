@@ -26,8 +26,35 @@ enforced, since a space can have upwards of one-thousand nodes.
 | `page` | `int` | The page number to examine. |
 | `limit` | `int` | `20` | How many nodes to return in a single request. This number can be `1-20`. |
 
-## Get Node
+## Retrieve Node
 `GET /node/{node.id}`
 
 Retrieves a node by its id.
+
+## Create Node
+`POST /node/new`
+
+Creates a new node. Returns the new node.
+
+### Body Parameters
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| `title` | `string` | The title of the node. |
+| `body` | `string` | The body of the node. |
+
+## Update Node
+`PATCH /node/{node.id}`
+
+Updates a node by its id. Returns the newly updated node.
+
+### Body Parameters
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `title?` | `string` | absent | Updates the title of the node if present. |
+| `body?` | `string` | absent | Updates the body of the node if present. |
+
+## Delete Node
+`DELETE /node/{node.id}`
+
+Deletes a node by its id. Returns a `204` on success.
 

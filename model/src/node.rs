@@ -17,20 +17,3 @@ pub struct Node {
     pub children: Option<Vec<Node>>,
 }
 
-/// Request query parameters for `GET /nodes`
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
-pub struct ParamsList {
-    pub page: u32,
-    pub limit: u32,
-}
-
-impl Default for ParamsList {
-    fn default() -> ParamsList {
-        ParamsList {
-            page: 1,
-            limit: 20,
-        }
-    }
-}
-

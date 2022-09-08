@@ -29,6 +29,8 @@ pub enum Code {
     /// An internal server error occured. The message will contain basic debug
     /// information.
     InternalServerError = 21,
+    /// Payload is too large for server to accept.
+    PayloadTooLarge = 4001,
     /// The object was not found.
     NotFound = 4004,
 }

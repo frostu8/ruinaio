@@ -28,6 +28,17 @@ impl Error {
             reason: reason.into(),
         })
     }
+
+    /// Creates a payload too large error with a specified message.
+    pub fn payload_too_large<S>(reason: S) -> Error
+    where
+        S: Into<String>,
+    {
+        Error(ruinaio_model::Error {
+            code: Code::PayloadTooLarge,
+            reason: reason.into(),
+        })
+    }
 }
 
 impl Display for Error {
@@ -41,6 +52,7 @@ impl ResponseError for Error {
         match self.code {
             Code::NotFound => StatusCode::NOT_FOUND,
             Code::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Code::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
         }
     }
 
