@@ -1,9 +1,11 @@
 //! Node API.
 
 use ruinaio_model::node::{Node, ParamsList};
-use crate::db::Db;
 
-use actix_web::{web, Responder};
+use crate::db::Db;
+use crate::error::Error;
+
+use actix_web::web;
 
 use sqlx::Row as _;
 
@@ -11,7 +13,7 @@ use sqlx::Row as _;
 pub async fn list(
     params: web::Query<ParamsList>,
     db: Db,
-) -> web::Json<Vec<Node>> {
+) -> Result<web::Json<Vec<Node>>, Error> {
     // check bounds
     if params.page == 0 {
         // TODO: replace with proper error
@@ -42,15 +44,14 @@ pub async fn list(
         .fetch_all(db.get_ref())
         .await
         .map(|vec| web::Json(vec))
-        // TODO: handle db errors
-        .unwrap()
+        .map_err(From::from)
 }
 
 /// Gets a single node with all of its children and parents.
 pub async fn node(
     id: web::Path<(i32,)>,
     db: Db,
-) -> web::Json<Node> {
+) -> Result<web::Json<Node>, Error> {
     let (id,) = id.into_inner();
     
     // fetch node
@@ -59,22 +60,19 @@ pub async fn node(
     )
         .bind(id)
         .fetch_optional(db.get_ref())
-        .await
-        // TODO: handle db errors
-        .unwrap();
+        .await?;
 
     match node {
         Some((title, body)) => {
             // get parents and children
-            // TODO: handle db errors
-            let parents = get_parents(id, &db).await.unwrap();
-            let children = get_children(id, &db).await.unwrap();
+            let parents = get_parents(id, &db).await?;
+            let children = get_children(id, &db).await?;
 
-            web::Json(Node { id, title, body, parents: Some(parents), children: Some(children) })
+            Ok(web::Json(Node { id, title, body, parents: Some(parents), children: Some(children) }))
         }
         None => {
             // TODO: handle missing
-            panic!("not found");
+            Err(Error::not_found("node not found"))
         }
     }
 }
