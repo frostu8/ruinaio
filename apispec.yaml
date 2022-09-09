@@ -1,0 +1,145 @@
+openapi: "3.0.0"
+info:
+  version: "0.1.0"
+  title: "ruina.io"
+  description: Relational node CMS.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /nodes:
+    get:
+      summary: Retrieve All Nodes
+      description: Lists all nodes in a single space.
+      parameters:
+        - name: page
+          description: The page number to list
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          description: The amount of nodes to display each page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            responses:
+              "200":
+                description: The list of nodes
+                content:
+                  application/json:
+                    schema:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/Node"
+    /nodes/new:
+      post:
+        summary: Create Node
+        description: Creates a new node.
+        requestBody:
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - title
+                  - body
+                properties:
+                  title:
+                    type: string
+                    maxLength: 128
+                    body:
+                      type: string
+            responses:
+              "200":
+                description: The newly created node
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/Node"
+    /node/{id}:
+      parameters:
+        - name: id
+          description: The unique identifier of the node
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/NodeId"
+          get:
+            summary: Retrieve Node
+            description: Retrieves a node along with all of its parents and children.
+            responses:
+              "200":
+                description: The node corresponding to the provided `id`
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/Node"
+          patch:
+            summary: Update Node
+            description: Updates a node with new information.
+            requestBody:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                        maxLength: 128
+                        body:
+                          type: string
+            responses:
+              "200":
+                description: The newly updated node corresponding to the provided `id`
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/Node"
+          delete:
+            summary: Delete Node
+            description: Deletes a node.
+            responses:
+              "204":
+                description: The node has been successfully deleted.
+components:
+  schemas:
+    NodeId:
+      description: The unique identifier of a node
+      type: integer
+      Node:
+        type: object
+        required:
+          - id
+          - title
+          - body
+        properties:
+          id:
+            $ref: "#/components/schemas/NodeId"
+            title:
+              type: string
+              maxLength: 128
+              body:
+                type: string
+                parents:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Node"
+                children:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Node"
+        Error:
+          type: object
+          required:
+            - code
+            - reason
+          properties:
+            code:
+              description: The error's code
+              type: integer
+              reason:
+                description: A human readable error message
+                type: string
