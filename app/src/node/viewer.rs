@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use super::use_node;
 
-use pulldown_cmark::{html, Parser};
+use pulldown_cmark::{html, Parser, Options, LinkType, BrokenLink, CowStr};
 
 /// Properties for a [`Viewer`].
 #[derive(Properties, PartialEq)]
@@ -21,8 +21,8 @@ pub fn viewer(props: &Props) -> Html {
     let fallback = html! { <h2>{ props.id }</h2> };
 
     html! {
-        <div class={"card text-bg-dark mb-3"} style={"width: 33%;"}>
-            <div class={"card-body"}>
+        <div class="card text-bg-dark my-3">
+            <div class="card-body">
                 <Suspense {fallback}>
                     <Content id={props.id}/>
                 </Suspense>
@@ -36,7 +36,14 @@ fn content(props: &Props) -> HtmlResult {
     let node = use_node(props.id)?;
 
     // render body
-    let parser = Parser::new(&node.body);
+    let mut broken_link_callback = broken_link_callback;
+
+    let parser = Parser::new_with_broken_link_callback(
+        &node.body,
+        Options::all() & !Options::ENABLE_HEADING_ATTRIBUTES,
+        Some(&mut broken_link_callback),
+    );
+
     let mut body = String::new();
     html::push_html(&mut body, parser);
 
@@ -46,9 +53,18 @@ fn content(props: &Props) -> HtmlResult {
 
     Ok(html! {
         <div>
-            <h6 class={"card-subtitle mb-2 text-muted"}>{ &node.slug }</h6>
+            <h6 class="card-subtitle mb-2 text-muted">{ &node.slug }</h6>
             { Html::VRef(body_div.into()) }
         </div>
     })
 }
+
+fn broken_link_callback<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<'a>)> {
+    // copy shortcut to target
+    match link.link_type {
+        LinkType::Shortcut => Some((link.reference.clone(), link.reference)),
+        _ => None,
+    }
+}
+
 
