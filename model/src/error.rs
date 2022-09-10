@@ -29,10 +29,12 @@ pub enum Code {
     /// An internal server error occured. The message will contain basic debug
     /// information.
     InternalServerError = 21,
+    /// The object was not found.
+    NotFound = 2004,
     /// Payload is too large for server to accept.
     PayloadTooLarge = 4001,
-    /// The object was not found.
-    NotFound = 4004,
+    /// A slug was malformed or invalid.
+    InvalidSlug = 4002,
 }
 
 impl Display for Code {

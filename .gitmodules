@@ -1,0 +1,3 @@
+[submodule "app/bootstrap"]
+	path = app/bootstrap
+	url = https://github.com/twbs/bootstrap

@@ -44,10 +44,10 @@ paths:
               schema:
                 type: object
                 required:
-                  - title
+                  - slug
                   - body
                 properties:
-                  title:
+                  slug:
                     type: string
                     maxLength: 128
                     body:
@@ -67,79 +67,79 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/NodeId"
-          get:
-            summary: Retrieve Node
-            description: Retrieves a node along with all of its parents and children.
-            responses:
-              "200":
-                description: The node corresponding to the provided `id`
-                content:
-                  application/json:
-                    schema:
-                      $ref: "#/components/schemas/Node"
-          patch:
-            summary: Update Node
-            description: Updates a node with new information.
-            requestBody:
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      title:
-                        type: string
-                        maxLength: 128
-                        body:
-                          type: string
-            responses:
-              "200":
-                description: The newly updated node corresponding to the provided `id`
-                content:
-                  application/json:
-                    schema:
-                      $ref: "#/components/schemas/Node"
-          delete:
-            summary: Delete Node
-            description: Deletes a node.
-            responses:
-              "204":
-                description: The node has been successfully deleted.
+      get:
+        summary: Retrieve Node
+        description: Retrieves a node along with all of its parents and children.
+        responses:
+          "200":
+            description: The node corresponding to the provided `id`
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Node"
+      patch:
+        summary: Update Node
+        description: Updates a node with new information.
+        requestBody:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  slug:
+                    type: string
+                    maxLength: 128
+                    body:
+                      type: string
+        responses:
+          "200":
+            description: The newly updated node corresponding to the provided `id`
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Node"
+      delete:
+        summary: Delete Node
+        description: Deletes a node.
+        responses:
+          "204":
+            description: The node has been successfully deleted.
 components:
   schemas:
     NodeId:
       description: The unique identifier of a node
       type: integer
-      Node:
-        type: object
-        required:
-          - id
-          - title
-          - body
-        properties:
-          id:
-            $ref: "#/components/schemas/NodeId"
-            title:
+    Node:
+      type: object
+      required:
+        - id
+        - slug
+        - body
+      properties:
+        id:
+          $ref: "#/components/schemas/NodeId"
+          slug:
+            type: string
+            maxLength: 128
+            body:
               type: string
-              maxLength: 128
-              body:
-                type: string
-                parents:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Node"
-                children:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Node"
-        Error:
-          type: object
-          required:
-            - code
-            - reason
-          properties:
-            code:
-              description: The error's code
-              type: integer
-              reason:
-                description: A human readable error message
-                type: string
+              parents:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+              children:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+    Error:
+      type: object
+      required:
+        - code
+        - reason
+      properties:
+        code:
+          description: The error's code
+          type: integer
+          reason:
+            description: A human readable error message
+            type: string

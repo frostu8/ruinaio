@@ -8,9 +8,10 @@ use node::Viewer;
 pub fn app() -> Html {
     html! {
         <div>
-            <Viewer id=2></Viewer>
             <Viewer id=3></Viewer>
             <Viewer id=4></Viewer>
+            <Viewer id=5></Viewer>
+            <Viewer id=6></Viewer>
         </div>
     }
 }

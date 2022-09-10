@@ -23,7 +23,7 @@ impl Default for ListNodes {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateNode {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub slug: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
 }
@@ -31,7 +31,7 @@ pub struct UpdateNode {
 /// Request body parameters for `POST /node/new`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateNode {
-    pub title: String,
+    pub slug: String,
     pub body: String,
 }
 
