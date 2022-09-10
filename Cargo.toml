@@ -16,5 +16,5 @@ ruinaio-model = { path = "model" }
 serde_json = "1.0"
 
 [workspace]
-members = ["model"]
+members = ["app", "model"]
 

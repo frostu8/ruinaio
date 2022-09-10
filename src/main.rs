@@ -19,7 +19,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .app_data(web::Data::new(database.clone()))
             .configure(ruinaio::api::config)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 9000))?
     .run()
     .await
     .map_err(From::from)
