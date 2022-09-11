@@ -8,33 +8,40 @@ use yew::prelude::*;
 use yew::suspense::{Suspension, SuspensionResult};
 use yew::platform::spawn_local;
 
-use ruinaio_model::Node;
+use ruinaio_model::{Error, Node};
 
 use std::rc::Rc;
 use std::ops::Deref;
 
 #[hook]
-fn use_node(id: i32) -> SuspensionResult<Rc<Node>> {
-    let state = use_state(|| None::<Rc<Node>>);
+fn use_node(id: i32) -> SuspensionResult<Result<Rc<Node>, Error>> {
+    let state = use_state(|| None::<Result<Rc<Node>, Error>>);
 
     match state.deref() {
-        Some(node) if node.id == id => Ok(Rc::clone(node)),
+        Some(Ok(node)) if node.id == id => Ok(Ok(Rc::clone(node))),
+        Some(Err(err)) => Ok(Err(err.clone())),
         _ => {
             // create suspension
             let (s, handle) = Suspension::new();
 
             // fetch node
             spawn_local(async move {
-                let node = reqwest::get(
+                let res = reqwest::get(
                     format!("http://127.0.0.1:8080/api/v1/node/{}", id)
                 )
                     .await
-                    .unwrap()
-                    .json::<Node>()
-                    .await
                     .unwrap();
 
-                state.set(Some(Rc::new(node)));
+                if res.status().is_success() {
+                    let node = res.json::<Node>().await.unwrap();
+
+                    state.set(Some(Ok(Rc::new(node))));
+                } else {
+                    let error = res.json::<Error>().await.unwrap();
+
+                    state.set(Some(Err(error)));
+                }
+
                 handle.resume();
             });
 
