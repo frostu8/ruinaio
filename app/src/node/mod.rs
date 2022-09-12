@@ -1,5 +1,6 @@
 //! Node manipulation models.
 
+#[doc(hidden)]
 pub mod viewer;
 
 pub use viewer::Viewer;
