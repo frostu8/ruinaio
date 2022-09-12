@@ -11,11 +11,15 @@ use yew::platform::spawn_local;
 
 use ruinaio_model::{Error, Node};
 
+use crate::{origin, Context};
+
 use std::rc::Rc;
 use std::ops::Deref;
 
 #[hook]
 fn use_node(id: i32) -> SuspensionResult<Result<Rc<Node>, Error>> {
+    let Context { api_client } = use_context::<Context>().unwrap();
+
     let state = use_state(|| None::<Result<Rc<Node>, Error>>);
 
     match state.deref() {
@@ -27,9 +31,10 @@ fn use_node(id: i32) -> SuspensionResult<Result<Rc<Node>, Error>> {
 
             // fetch node
             spawn_local(async move {
-                let res = reqwest::get(
-                    format!("http://127.0.0.1:8080/api/v1/node/{}", id)
+                let res = api_client.get(
+                    format!("{}/api/v1/node/{}", origin(), id)
                 )
+                    .send()
                     .await
                     .unwrap();
 

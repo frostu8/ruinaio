@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// A single node.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Node {
     /// The unique identifier of the node.
     pub id: i32,
