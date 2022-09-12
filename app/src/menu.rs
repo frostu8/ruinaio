@@ -5,7 +5,7 @@ use web_sys::HtmlInputElement;
 
 use crate::{origin, Context};
 
-use ruinaio_model::{Node, Error, params::CreateNode};
+use ruinaio_model::{Node, Error, params::CreateNode, slug::slugify};
 
 /// Props for [`Menu`].
 #[derive(Properties, PartialEq)]
@@ -17,7 +17,7 @@ pub struct Props {
 
 enum State {
     Index,
-    Create(String),
+    Create(String, String),
 }
 
 /// Panel menu.
@@ -30,7 +30,7 @@ pub fn menu(props: &Props) -> Html {
 
     match &*state {
         State::Index => {
-            let action_new = Callback::from(move |_| state.set(State::Create(String::new())));
+            let action_new = Callback::from(move |_| state.set(State::Create(String::new(), String::new())));
 
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
@@ -39,7 +39,7 @@ pub fn menu(props: &Props) -> Html {
                 </div>
             }
         }
-        State::Create(title) if *loading => {
+        State::Create(namespace, title) if *loading => {
             html! {
                 <div class={classes!("input-group", props.class.clone())}>
                     <div class="input-group-prepend">
@@ -57,8 +57,8 @@ pub fn menu(props: &Props) -> Html {
                 </div>
             }
         }
-        State::Create(title) => {
-            let can_submit = title.len() > 0;
+        State::Create(namespace, title) => {
+            let can_submit = title.len() > 0 && title.len() <= 128;
 
             let action_back = {
                 let state = state.clone();
@@ -111,26 +111,68 @@ pub fn menu(props: &Props) -> Html {
             };
 
             let input_ref = NodeRef::default();
-            let input = {
+            let oninput = {
                 let input_ref = input_ref.clone();
                 let state = state.clone();
+                let namespace = namespace.clone();
 
                 Callback::from(move |_| {
-                    state.set(State::Create(input_ref
-                            .cast::<HtmlInputElement>()
-                            .unwrap()
-                            .value()))
+                    let namespace = namespace.clone();
+
+                    let value = input_ref
+                        .cast::<HtmlInputElement>()
+                        .unwrap()
+                        .value();
+
+                    if let Some(idx) = value.rfind('/') {
+                        // move to namespace
+                        let appendage = slugify(&value[..idx+1]).unwrap();
+                        let value = value[idx+1..].to_owned();
+
+                        state.set(State::Create(namespace + &appendage, value))
+                    } else {
+                        state.set(State::Create(namespace, value))
+                    }
                 })
             };
 
+            let onkeydown = if title.is_empty() && !namespace.is_empty() {
+                let state = state.clone();
+                let namespace = namespace.clone();
+
+                Callback::from(move |ev: KeyboardEvent| {
+                    if ev.key() == "Backspace" {
+                        ev.prevent_default();
+
+                        // remove trailing '/'
+                        let namespace = &namespace[..namespace.len()-1];
+
+                        match namespace.rfind('/') {
+                            Some(idx) => {
+                                let title = namespace[idx+1..].to_owned();
+                                let namespace = namespace[..idx+1].to_owned();
+
+                                state.set(State::Create(namespace, title))
+                            }
+                            None => {
+                                state.set(State::Create(String::new(), namespace.to_owned()))
+                            }
+                        }
+                    }
+                })
+            } else {
+                Callback::default()
+            };
+
             html! {
-                <div class={classes!("input-group", props.class.clone())}>
-                    <div class="input-group-prepend">
-                        <button class="btn btn-outline-secondary" type="button" onclick={action_back}>{ "Back" }</button>
-                    </div>
-                    <input type="text" class="form-control text-bg-dark" value={title.clone()} ref={input_ref} oninput={input}/>
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="button" onclick={action_create} disabled={!can_submit}>{ "Create" }</button>
+                <div class={classes!("d-flex", props.class.clone())}>
+                    <button class="btn btn-outline-secondary" type="button" onclick={action_back}>{ "Back" }</button>
+                    <p class="px-2 py-1 m-0 text-nowrap">{ namespace }</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} ref={input_ref} {oninput} {onkeydown}/>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" onclick={action_create} disabled={!can_submit}>{ "Create" }</button>
+                        </div>
                     </div>
                 </div>
             }
