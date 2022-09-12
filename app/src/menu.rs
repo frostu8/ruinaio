@@ -41,18 +41,19 @@ pub fn menu(props: &Props) -> Html {
         }
         State::Create(namespace, title) if *loading => {
             html! {
-                <div class={classes!("input-group", props.class.clone())}>
-                    <div class="input-group-prepend">
-                        <button class="btn btn-outline-secondary" type="button" disabled=true>{ "Back" }</button>
-                    </div>
-                    <input type="text" class="form-control text-bg-dark" value={title.clone()} disabled=true/>
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="button" disabled=true>
-                            //<span class="invisible">{ "Create" }</span>
-                            <div class="spinner-border spinner-border-sm text-light" role="status">
-                                <span class="visually-hidden">{ "Loading..." }</span>
-                            </div>
-                        </button>
+                <div class={classes!("d-flex", props.class.clone())}>
+                    <button class="btn btn-outline-secondary" type="button" disabled=true>{ "Back" }</button>
+                    <p class="px-2 py-1 m-0 text-nowrap">{ namespace }</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} disabled=true/>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" disabled=true>
+                                //<span class="invisible">{ "Create" }</span>
+                                <div class="spinner-border spinner-border-sm text-light" role="status">
+                                    <span class="visually-hidden">{ "Loading..." }</span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
@@ -72,7 +73,7 @@ pub fn menu(props: &Props) -> Html {
                 let loading = loading.clone();
                 let onnew = props.onnew.clone();
 
-                Callback::from(move |_| {
+                Callback::from(move |_: ()| {
                     loading.set(true);
 
                     let title = title.clone();
@@ -161,6 +162,14 @@ pub fn menu(props: &Props) -> Html {
                         }
                     }
                 })
+            } else if can_submit {
+                let action_create = action_create.clone();
+
+                Callback::from(move |ev: KeyboardEvent| {
+                    if ev.key() == "Enter" {
+                        action_create.emit(());
+                    }
+                })
             } else {
                 Callback::default()
             };
@@ -172,7 +181,7 @@ pub fn menu(props: &Props) -> Html {
                     <div class="input-group">
                         <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} ref={input_ref} {oninput} {onkeydown}/>
                         <div class="input-group-append">
-                            <button class="btn btn-primary" type="button" onclick={action_create} disabled={!can_submit}>{ "Create" }</button>
+                            <button class="btn btn-primary" type="button" onclick={action_create.reform(|_| ())} disabled={!can_submit}>{ "Create" }</button>
                         </div>
                     </div>
                 </div>
