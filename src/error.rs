@@ -32,12 +32,12 @@ impl Error {
         Error::new(Code::NotFound, reason)
     }
 
-    /// Creates a payload too large error with a specified message.
-    pub fn payload_too_large<S>(reason: S) -> Error
+    /// Creates an out of bounds error with a specified message.
+    pub fn out_of_bounds<S>(reason: S) -> Error
     where
         S: Into<String>,
     {
-        Error::new(Code::PayloadTooLarge, reason)
+        Error::new(Code::OutOfBounds, reason)
     }
 }
 
@@ -52,8 +52,7 @@ impl ResponseError for Error {
         match self.code {
             Code::NotFound => StatusCode::NOT_FOUND,
             Code::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            Code::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
-            Code::InvalidSlug => StatusCode::BAD_REQUEST,
+            Code::InvalidSlug | Code::OutOfBounds => StatusCode::BAD_REQUEST,
         }
     }
 

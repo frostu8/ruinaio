@@ -18,13 +18,11 @@ pub async fn list(
 ) -> Result<web::Json<Vec<Node>>, Error> {
     // check bounds
     if params.page == 0 {
-        // TODO: replace with proper error
-        panic!("page must be greater than zero");
+        return Err(Error::out_of_bounds("member `page` must be greater than zero"));
     }
 
     if params.limit > 20 {
-        // TODO: replace with proper error
-        panic!("limit cannot be greater than 20");
+        return Err(Error::out_of_bounds("member `limit` cannot be greater than 20"));
     }
 
     let limit = params.limit as i32;
@@ -226,11 +224,11 @@ async fn get_slug(id: i32, db: &Db) -> Result<String, Error> {
 
 fn check_title<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
     if s.len() == 0 {
-        return Err(Error::payload_too_large("member `title` must be at least 1 character or more"));
+        return Err(Error::out_of_bounds("member `title` must be at least 1 character or more"));
     }
 
     if s.len() > 128 {
-        return Err(Error::payload_too_large("member `title` must be less than or equal to 128 characters"));
+        return Err(Error::out_of_bounds("member `title` must be less than or equal to 128 characters"));
     }
 
     // if title is less than 128 characters, the slug should be, too.
@@ -239,15 +237,15 @@ fn check_title<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
 
 fn check_namespace<'a>(s: &'a str) -> Result<&'a str, Error> {
     if s.len() == 0 {
-        return Err(Error::payload_too_large("member `namespace` must be at least 1 character or more"));
+        return Err(Error::out_of_bounds("member `namespace` must be at least 1 character or more"));
     }
 
     if s.len() > 128 {
-        return Err(Error::payload_too_large("member `namespace` must be less than or equal to 128 characters"));
+        return Err(Error::out_of_bounds("member `namespace` must be less than or equal to 128 characters"));
     }
 
     if s.chars().last().unwrap() != '/' {
-        return Err(Error::payload_too_large("member `namespace` must end in a slash"));
+        return Err(Error::out_of_bounds("member `namespace` must end in a slash"));
     }
 
     ruinaio_model::slug::check_slug(s)

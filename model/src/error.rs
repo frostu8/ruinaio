@@ -31,8 +31,8 @@ pub enum Code {
     InternalServerError = 21,
     /// The object was not found.
     NotFound = 2004,
-    /// Payload is too large for server to accept.
-    PayloadTooLarge = 4001,
+    /// A number or string is out of bounds.
+    OutOfBounds = 4001,
     /// A slug was malformed or invalid.
     InvalidSlug = 4002,
 }
