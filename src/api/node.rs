@@ -41,8 +41,6 @@ pub async fn list(
             slug: row.try_get(1)?,
             title: row.try_get(2)?,
             body: row.try_get(3)?,
-            parents: None,
-            children: None,
         }))
         .fetch_all(db.get_ref())
         .await
@@ -88,8 +86,6 @@ pub async fn create(
         slug: slug.into_owned(),
         title,
         body,
-        parents: None,
-        children: None,
     }))
 }
 
@@ -109,11 +105,7 @@ pub async fn node(
         .await?;
 
     if let Some((slug, title, body)) = node {
-        // get parents and children
-        let parents = get_parents(id, &db).await?;
-        let children = get_children(id, &db).await?;
-
-        Ok(web::Json(Node { id, slug, title, body, parents: Some(parents), children: Some(children) }))
+        Ok(web::Json(Node { id, slug, title, body }))
     } else {
         Err(Error::not_found("node not found"))
     }
@@ -192,11 +184,7 @@ pub async fn update(
 
     // retrieve node
     if let Some((slug, title, body)) = node {
-        // get parents and children
-        let parents = get_parents(id, &db).await?;
-        let children = get_children(id, &db).await?;
-
-        Ok(web::Json(Node { id, slug, title, body, parents: Some(parents), children: Some(children) }))
+        Ok(web::Json(Node { id, slug, title, body }))
     } else {
         Err(Error::not_found("node not found"))
     }
@@ -222,40 +210,6 @@ pub async fn delete(
     } else {
         Err(Error::not_found("node not found"))
     }
-}
-
-async fn get_parents(id: i32, db: &Db) -> Result<Vec<Node>, sqlx::Error> {
-    sqlx::query(
-        "SELECT node.id, node.slug, node.title, node.body FROM node INNER JOIN relation ON node.id = relation.parent_id WHERE relation.child_id = $1"
-    )
-        .bind(id)
-        .try_map(|row| Ok(Node {
-            id: row.try_get(0)?,
-            slug: row.try_get(1)?,
-            title: row.try_get(2)?,
-            body: row.try_get(3)?,
-            parents: None,
-            children: None,
-        }))
-        .fetch_all(db.get_ref())
-        .await
-}
-
-async fn get_children(id: i32, db: &Db) -> Result<Vec<Node>, sqlx::Error> {
-    sqlx::query(
-        "SELECT node.id, node.slug, node.title, node.body FROM node INNER JOIN relation ON node.id = relation.child_id WHERE relation.parent_id = $1"
-    )
-        .bind(id)
-        .try_map(|row| Ok(Node {
-            id: row.try_get(0)?,
-            slug: row.try_get(1)?,
-            title: row.try_get(2)?,
-            body: row.try_get(3)?,
-            parents: None,
-            children: None,
-        }))
-        .fetch_all(db.get_ref())
-        .await
 }
 
 async fn get_slug(id: i32, db: &Db) -> Result<String, Error> {

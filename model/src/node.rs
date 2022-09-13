@@ -11,11 +11,5 @@ pub struct Node {
     pub title: String,
     /// The actual content of the node.
     pub body: String,
-    /// The node's parents.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub parents: Option<Vec<Node>>,
-    /// The node's children.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub children: Option<Vec<Node>>,
 }
 
