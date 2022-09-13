@@ -1,9 +1,11 @@
 //! Node API.
 
-use ruinaio_model::{params, node::Node};
+use ruinaio_model::{params, node::Node, slug};
 
 use crate::db::Db;
-use crate::error::Error;
+use crate::error::{Code, Error};
+
+use std::borrow::Cow;
 
 use actix_web::{HttpResponse, web};
 
@@ -30,14 +32,15 @@ pub async fn list(
 
     // return list of nodes
     sqlx::query(
-        "SELECT id, slug, body FROM node LIMIT $1 OFFSET $2;"
+        "SELECT id, slug, title, body FROM node LIMIT $1 OFFSET $2;"
     )
         .bind(limit)
         .bind(offset)
         .try_map(|row| Ok(Node {
             id: row.try_get(0)?,
             slug: row.try_get(1)?,
-            body: row.try_get(2)?,
+            title: row.try_get(2)?,
+            body: row.try_get(3)?,
             parents: None,
             children: None,
         }))
@@ -52,26 +55,39 @@ pub async fn create(
     params: web::Json<params::CreateNode>,
     db: Db,
 ) -> Result<web::Json<Node>, Error> {
-    let params::CreateNode { slug, body } = params.into_inner();
+    let params::CreateNode { namespace, title, body } = params.into_inner();
 
-    if slug.len() > 128 {
-        return Err(Error::payload_too_large("member `slug` must be less than or equal to 128 characters"));
-    }
+    let namespace = match namespace {
+        Some(namespace) if namespace.is_empty() => None,
+        namespace => namespace,
+    };
 
-    crate::api::verify_slug(&slug)?;
+    // create a slug
+    let slug = check_title(&title)?;
+    let slug = match namespace {
+        Some(namespace) => {
+            let namespace = check_namespace(&namespace)?.to_owned();
+            (namespace + &slug).into()
+        }
+        None => slug,
+    };
 
     // create new node
     let (id,) = sqlx::query_as::<_, (i32,)>(
-        "INSERT INTO node (slug, body) VALUES ($1, $2) RETURNING id;"
+        "INSERT INTO node (slug, title, body) VALUES ($1, $2, $3) RETURNING id;"
     )
         .bind(&slug)
+        .bind(&title)
         .bind(&body)
         .fetch_one(db.get_ref())
         .await?;
 
     // return node
     Ok(web::Json(Node {
-        id, slug, body,
+        id,
+        slug: slug.into_owned(),
+        title,
+        body,
         parents: None,
         children: None,
     }))
@@ -85,19 +101,19 @@ pub async fn node(
     let (id,) = id.into_inner();
     
     // fetch node
-    let node = sqlx::query_as::<_, (String, String)>(
-        "SELECT slug, body FROM node WHERE id = $1;"
+    let node = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT slug, title, body FROM node WHERE id = $1;"
     )
         .bind(id)
         .fetch_optional(db.get_ref())
         .await?;
 
-    if let Some((slug, body)) = node {
+    if let Some((slug, title, body)) = node {
         // get parents and children
         let parents = get_parents(id, &db).await?;
         let children = get_children(id, &db).await?;
 
-        Ok(web::Json(Node { id, slug, body, parents: Some(parents), children: Some(children) }))
+        Ok(web::Json(Node { id, slug, title, body, parents: Some(parents), children: Some(children) }))
     } else {
         Err(Error::not_found("node not found"))
     }
@@ -110,33 +126,77 @@ pub async fn update(
     db: Db,
 ) -> Result<web::Json<Node>, Error> {
     let (id,) = id.into_inner();
-    let params::UpdateNode { slug, body } = params.into_inner();
+    let params::UpdateNode { namespace, title, body } = params.into_inner();
 
-    if let Some(slug) = &slug {
-        if slug.len() > 128 {
-            return Err(Error::payload_too_large("member `slug` must be less than or equal to 128 characters"));
+    let namespace = match namespace {
+        Some(Some(namespace)) if namespace.is_empty() => Some(None),
+        namespace => namespace,
+    };
+
+    // create slug
+    let slug = match (namespace, &title) {
+        // updates both the namespace and title, effectively giving it an
+        // entirely new slug
+        (Some(Some(namespace)), Some(title)) => {
+            Some(check_namespace(&namespace)?.to_owned() + &check_title(title)?)
         }
+        // unsets the namespace and updates the slug
+        (Some(None), Some(title)) => {
+            let title = check_title(title)?;
 
-        crate::api::verify_slug(&slug)?;
-    }
+            Some(title.into_owned())
+        }
+        // updates only the namespace
+        (Some(Some(namespace)), None) => {
+            let namespace = check_namespace(&namespace)?;
+
+            let slug = get_slug(id, &db).await?;
+            let (_, title) = slug::split(&slug);
+
+            Some(namespace.to_owned() + title)
+        }
+        // unsets the namespace
+        (Some(None), None) => {
+            let slug = get_slug(id, &db).await?;
+
+            let (_, title) = slug::split(&slug);
+
+            Some(title.to_owned())
+        }
+        // updates only the slug
+        (None, Some(title)) => {
+            let title = check_title(title)?;
+
+            let slug = get_slug(id, &db).await?;
+            let (namespace, _) = slug::split(&slug);
+
+            match namespace {
+                Some(namespace) => Some(namespace.to_owned() + &title),
+                None => Some(title.into_owned()),
+            }
+        }
+        // updates nothing!
+        (None, None) => None
+    };
 
     // update node in database
-    let node = sqlx::query_as::<_, (String, String)>(
-        "UPDATE node SET slug = COALESCE($2, slug), body = COALESCE($3, body) WHERE id = $1 RETURNING slug, body"
+    let node = sqlx::query_as::<_, (String, String, String)>(
+        "UPDATE node SET slug = COALESCE($2, slug), title = COALESCE($3, title), body = COALESCE($4, body) WHERE id = $1 RETURNING slug, title, body"
     )
         .bind(id)
         .bind(slug)
+        .bind(title)
         .bind(body)
         .fetch_optional(db.get_ref())
         .await?;
 
     // retrieve node
-    if let Some((slug, body)) = node {
+    if let Some((slug, title, body)) = node {
         // get parents and children
         let parents = get_parents(id, &db).await?;
         let children = get_children(id, &db).await?;
 
-        Ok(web::Json(Node { id, slug, body, parents: Some(parents), children: Some(children) }))
+        Ok(web::Json(Node { id, slug, title, body, parents: Some(parents), children: Some(children) }))
     } else {
         Err(Error::not_found("node not found"))
     }
@@ -166,13 +226,14 @@ pub async fn delete(
 
 async fn get_parents(id: i32, db: &Db) -> Result<Vec<Node>, sqlx::Error> {
     sqlx::query(
-        "SELECT node.id, node.slug, node.body FROM node INNER JOIN relation ON node.id = relation.parent_id WHERE relation.child_id = $1"
+        "SELECT node.id, node.slug, node.title, node.body FROM node INNER JOIN relation ON node.id = relation.parent_id WHERE relation.child_id = $1"
     )
         .bind(id)
         .try_map(|row| Ok(Node {
             id: row.try_get(0)?,
             slug: row.try_get(1)?,
-            body: row.try_get(2)?,
+            title: row.try_get(2)?,
+            body: row.try_get(3)?,
             parents: None,
             children: None,
         }))
@@ -182,17 +243,60 @@ async fn get_parents(id: i32, db: &Db) -> Result<Vec<Node>, sqlx::Error> {
 
 async fn get_children(id: i32, db: &Db) -> Result<Vec<Node>, sqlx::Error> {
     sqlx::query(
-        "SELECT node.id, node.slug, node.body FROM node INNER JOIN relation ON node.id = relation.child_id WHERE relation.parent_id = $1"
+        "SELECT node.id, node.slug, node.title, node.body FROM node INNER JOIN relation ON node.id = relation.child_id WHERE relation.parent_id = $1"
     )
         .bind(id)
         .try_map(|row| Ok(Node {
             id: row.try_get(0)?,
             slug: row.try_get(1)?,
-            body: row.try_get(2)?,
+            title: row.try_get(2)?,
+            body: row.try_get(3)?,
             parents: None,
             children: None,
         }))
         .fetch_all(db.get_ref())
         .await
+}
+
+async fn get_slug(id: i32, db: &Db) -> Result<String, Error> {
+    sqlx::query_as::<_, (String,)>("SELECT slug FROM node WHERE id = $1")
+        .bind(id)
+        .fetch_one(db.get_ref())
+        .await
+        .map_err(|err| match err {
+            sqlx::Error::RowNotFound => Error::not_found("node not found"),
+            err => Error::from(err),
+        })
+        .map(|(s,)| s)
+}
+
+fn check_title<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
+    if s.len() == 0 {
+        return Err(Error::payload_too_large("member `title` must be at least 1 character or more"));
+    }
+
+    if s.len() > 128 {
+        return Err(Error::payload_too_large("member `title` must be less than or equal to 128 characters"));
+    }
+
+    // if title is less than 128 characters, the slug should be, too.
+    ruinaio_model::slug::slugify(s).map_err(Into::into)
+}
+
+fn check_namespace<'a>(s: &'a str) -> Result<&'a str, Error> {
+    if s.len() == 0 {
+        return Err(Error::payload_too_large("member `namespace` must be at least 1 character or more"));
+    }
+
+    if s.len() > 128 {
+        return Err(Error::payload_too_large("member `namespace` must be less than or equal to 128 characters"));
+    }
+
+    if s.chars().last().unwrap() != '/' {
+        return Err(Error::payload_too_large("member `namespace` must end in a slash"));
+    }
+
+    ruinaio_model::slug::check_slug(s)
+        .map_err(|err| Error::new(Code::InvalidSlug, err.to_string()))
 }
 

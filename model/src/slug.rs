@@ -1,13 +1,34 @@
 //! Slug utilities
+//!
+//! A slug is a string with only ASCII alphanumeric characters and slashes,
+//! mostly used to uniquely identify models with a human-readable format.
 
 use std::fmt::{self, Debug, Display, Formatter};
 use std::borrow::Cow;
 
+/// Checks if a string is a slug.
+pub fn check_slug<T>(s: T) -> Result<T, Error>
+where
+    T: AsRef<str>,
+{
+    // find the first character that doesn't follow slug rules
+    match s.as_ref().chars().enumerate().find(|(_, c)| !is_valid(*c)) {
+        Some((i, ch)) => {
+            // create error
+            Err(Error::InvalidChar(ch, i))
+        }
+        None => {
+            // seems ok!
+            Ok(s)
+        }
+    }
+}
+
 /// Turns a generic string into a slug.
 ///
 /// This involves removing any invalid punctuation, capitalizing the first
-/// letter and any letters directly after any invalid characters. Slashes are
-/// also allowed.
+/// letter and any letters directly after any invalid characters. This
+/// **includes** slashes.
 pub fn slugify<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
     if s.is_empty() {
         return Err(Error::Empty);
@@ -33,12 +54,12 @@ pub fn slugify<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
             }
         }
 
-        if let Some(idx) = s[start..].chars().position(|ch| !is_valid(ch)) {
+        if let Some(idx) = s[start..].chars().position(|ch| !ch.is_ascii_alphanumeric()) {
             // there are invalid characters! copy up until the characters
             push_str(&mut result, &s[start..start+idx]);
 
             // skip invalid characters
-            start = s[start+idx..].chars().position(is_valid).unwrap_or(s.len()) + start + idx;
+            start = s[start+idx..].chars().position(|ch| ch.is_ascii_alphanumeric()).unwrap_or(s.len()) + start + idx;
         } else {
             // return result
             if let Some(result) = &mut result {
@@ -80,6 +101,14 @@ fn push_str(s: &mut Option<String>, n: &str) {
     }
 }
 
+/// Splits a slug into it's namespace and leading end.
+pub fn split<'a>(s: &'a str) -> (Option<&'a str>, &'a str) {
+    match s.rfind('/') {
+        Some(idx) => (Some(&s[..idx+1]), &s[idx+1..]),
+        None => (None, s),
+    }
+}
+
 /// An error for slug parsing.
 #[derive(Clone, Debug)]
 pub enum Error {
@@ -96,7 +125,7 @@ impl Display for Error {
         match self {
             Error::Empty => f.write_str("input string is empty"),
             Error::Length(len) => write!(f, "input string is over 128 chars ({})", len),
-            Error::InvalidChar(ch, col) => write!(f, "invalid char '{}' @ col {}", ch, col),
+            Error::InvalidChar(ch, col) => write!(f, "invalid char '{}' @ col {}", ch, col+1),
         }
     }
 }

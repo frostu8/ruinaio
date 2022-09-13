@@ -38,6 +38,7 @@ pub fn viewer(props: &Props) -> Html {
         <div class="card text-bg-dark my-3">
             <div class="card-body">
                 <h6 class="card-subtitle mb-2 text-muted">{ &props.node.slug }</h6>
+                <h1 class="card-title">{ &props.node.title }</h1>
                 { Html::VRef(body_div.into()) }
             </div>
         </div>

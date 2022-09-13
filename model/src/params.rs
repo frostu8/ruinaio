@@ -22,8 +22,11 @@ impl Default for ListNodes {
 /// Request body parameters for `PATCH /node/{node.id}`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateNode {
+    /// `Some(None)` unsets the namespace.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slug: Option<String>,
+    pub namespace: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
 }
@@ -31,7 +34,8 @@ pub struct UpdateNode {
 /// Request body parameters for `POST /node/new`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateNode {
-    pub slug: String,
+    pub namespace: Option<String>,
+    pub title: String,
     pub body: String,
 }
 

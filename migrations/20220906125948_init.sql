@@ -1,7 +1,7 @@
 -- Nodes table
 CREATE TABLE node (
     id SERIAL PRIMARY KEY,
-    slug VARCHAR(128) NOT NULL UNIQUE,
+    slug VARCHAR(256) NOT NULL UNIQUE,
     title VARCHAR(128) NOT NULL,
     body TEXT NOT NULL
 );

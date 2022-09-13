@@ -67,6 +67,7 @@ pub fn menu(props: &Props) -> Html {
 
             let action_create = {
                 let title = title.clone();
+                let namespace = namespace.clone();
                 let state = state.clone();
                 let loading = loading.clone();
                 let onnew = props.onnew.clone();
@@ -75,20 +76,20 @@ pub fn menu(props: &Props) -> Html {
                     loading.set(true);
 
                     let title = title.clone();
+                    let namespace = namespace.clone();
                     let api_client = api_client.clone();
                     let state = state.clone();
                     let loading = loading.clone();
                     let onnew = onnew.clone();
 
                     spawn_local(async move {
-                        let slug = ruinaio_model::slug::slugify(&title).unwrap();
-
                         let res = api_client.post(
                             format!("{}/api/v1/nodes/new", origin())
                         )
                             .json(&CreateNode {
-                                slug: slug.into_owned(),
-                                body: format!("# {}", title),
+                                namespace: Some(namespace),
+                                title,
+                                body: String::new(),
                             })
                             .send()
                             .await
@@ -126,10 +127,10 @@ pub fn menu(props: &Props) -> Html {
 
                     if let Some(idx) = value.rfind('/') {
                         // move to namespace
-                        let appendage = slugify(&value[..idx+1]).unwrap();
+                        let appendage = slugify(&value[..idx]).unwrap();
                         let value = value[idx+1..].to_owned();
 
-                        state.set(State::Create(namespace + &appendage, value))
+                        state.set(State::Create(format!("{}{}/", namespace, &appendage), value))
                     } else {
                         state.set(State::Create(namespace, value))
                     }

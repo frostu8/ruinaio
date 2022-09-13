@@ -7,6 +7,8 @@ pub struct Node {
     pub id: i32,
     /// The node's unique slug. Unlike the `id`, this can change.
     pub slug: String,
+    /// The node's title.
+    pub title: String,
     /// The actual content of the node.
     pub body: String,
     /// The node's parents.
