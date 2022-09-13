@@ -1,8 +1,11 @@
 //! Node manipulation models.
 
 #[doc(hidden)]
+pub mod editor;
+#[doc(hidden)]
 pub mod viewer;
 
+pub use editor::Editor;
 pub use viewer::Viewer;
 
 use yew::prelude::*;

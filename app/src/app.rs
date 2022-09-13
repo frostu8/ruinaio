@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use std::rc::Rc;
 
-use crate::node::Viewer;
+use crate::node::Editor;
 use crate::menu::Menu;
 
 use reqwest::Client;
@@ -33,7 +33,7 @@ pub fn app() -> Html {
 
     html! {
         <ContextProvider<Context> {context}>
-            <div class="container-fluid row text-bg-dark">
+            <div class="container-fluid row">
                 { state.render(onnew) }
             </div>
         </ContextProvider<Context>>
@@ -51,7 +51,7 @@ impl Panel {
             <div class="col d-flex flex-column vh-100">
                 <Menu class="my-3" {onnew}/>
                 <div class="overflow-scroll">
-                    { for self.nodes.iter().map(|node| html! { <Viewer node={Rc::clone(node)} /> }) }
+                    { for self.nodes.iter().map(|node| html! { <Editor node={Rc::clone(node)} /> }) }
                 </div>
             </div>
         }
