@@ -42,18 +42,13 @@ pub fn menu(props: &Props) -> Html {
         State::Create(namespace, title) if *loading => {
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
-                    <button class="btn btn-outline-secondary" type="button" disabled=true>{ "Back" }</button>
-                    <p class="px-2 py-1 m-0 text-nowrap">{ namespace }</p>
                     <div class="input-group">
+                        <button class="btn btn-outline-secondary" type="button" disabled=true>{ "Back" }</button>
+                        if !namespace.is_empty() {
+                            <span class="input-group-text text-bg-dark">{ namespace }</span>
+                        }
                         <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} disabled=true/>
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="button" disabled=true>
-                                //<span class="invisible">{ "Create" }</span>
-                                <div class="spinner-border spinner-border-sm text-light" role="status">
-                                    <span class="visually-hidden">{ "Loading..." }</span>
-                                </div>
-                            </button>
-                        </div>
+                        <button class="btn btn-primary" type="button" disabled=true>{ "Create" }</button>
                     </div>
                 </div>
             }
@@ -176,13 +171,13 @@ pub fn menu(props: &Props) -> Html {
 
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
-                    <button class="btn btn-outline-secondary" type="button" onclick={action_back}>{ "Back" }</button>
-                    <p class="px-2 py-1 m-0 text-nowrap">{ namespace }</p>
                     <div class="input-group">
+                        <button class="btn btn-outline-secondary" type="button" onclick={action_back}>{ "Back" }</button>
+                        if !namespace.is_empty() {
+                            <span class="input-group-text text-bg-dark">{ namespace }</span>
+                        }
                         <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} ref={input_ref} {oninput} {onkeydown}/>
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="button" onclick={action_create.reform(|_| ())} disabled={!can_submit}>{ "Create" }</button>
-                        </div>
+                        <button class="btn btn-primary" type="button" onclick={action_create.reform(|_| ())} disabled={!can_submit}>{ "Create" }</button>
                     </div>
                 </div>
             }
