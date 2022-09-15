@@ -1,9 +1,7 @@
 use yew::prelude::*;
 use yew::platform::spawn_local;
 
-use web_sys::HtmlInputElement;
-
-use crate::{origin, Context};
+use crate::{origin, Context, input::title::{TitleInput, Title}};
 
 use ruinaio_model::{Node, Error, params::CreateNode, slug::slugify};
 
@@ -17,7 +15,7 @@ pub struct Props {
 
 enum State {
     Index,
-    Create(String, String),
+    Create(Title),
 }
 
 /// Panel menu.
@@ -30,7 +28,7 @@ pub fn menu(props: &Props) -> Html {
 
     match &*state {
         State::Index => {
-            let action_new = Callback::from(move |_| state.set(State::Create(String::new(), String::new())));
+            let action_new = Callback::from(move |_| state.set(State::Create(Title::default())));
 
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
@@ -39,22 +37,24 @@ pub fn menu(props: &Props) -> Html {
                 </div>
             }
         }
-        State::Create(namespace, title) if *loading => {
+        State::Create(title) if *loading => {
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
                     <div class="input-group">
                         <button class="btn btn-outline-secondary" type="button" disabled=true>{ "Back" }</button>
-                        if !namespace.is_empty() {
+                        if let Some(namespace) = title.namespace.as_ref() {
                             <span class="input-group-text text-bg-dark">{ namespace }</span>
                         }
-                        <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} disabled=true/>
+                        <input type="text" class="form-control text-bg-dark" maxlength=128 value={ title.title.clone() } disabled=true/>
                         <button class="btn btn-primary" type="button" disabled=true>{ "Create" }</button>
                     </div>
                 </div>
             }
         }
-        State::Create(namespace, title) => {
-            let can_submit = title.len() > 0 && title.len() <= 128;
+        State::Create(title) => {
+            let can_submit = slugify(&title.title).is_ok()
+                && title.title.len() > 0 
+                && title.title.len() <= 128;
 
             let action_back = {
                 let state = state.clone();
@@ -62,17 +62,15 @@ pub fn menu(props: &Props) -> Html {
             };
 
             let action_create = {
-                let title = title.clone();
-                let namespace = namespace.clone();
                 let state = state.clone();
                 let loading = loading.clone();
                 let onnew = props.onnew.clone();
+                let title = title.clone();
 
                 Callback::from(move |_: ()| {
                     loading.set(true);
 
                     let title = title.clone();
-                    let namespace = namespace.clone();
                     let api_client = api_client.clone();
                     let state = state.clone();
                     let loading = loading.clone();
@@ -83,8 +81,8 @@ pub fn menu(props: &Props) -> Html {
                             format!("{}/api/v1/nodes/new", origin())
                         )
                             .json(&CreateNode {
-                                namespace: Some(namespace),
-                                title,
+                                namespace: title.namespace.clone(),
+                                title: title.title.clone(),
                                 body: String::new(),
                             })
                             .send()
@@ -107,57 +105,12 @@ pub fn menu(props: &Props) -> Html {
                 })
             };
 
-            let input_ref = NodeRef::default();
             let oninput = {
-                let input_ref = input_ref.clone();
                 let state = state.clone();
-                let namespace = namespace.clone();
-
-                Callback::from(move |_| {
-                    let namespace = namespace.clone();
-
-                    let value = input_ref
-                        .cast::<HtmlInputElement>()
-                        .unwrap()
-                        .value();
-
-                    if let Some(idx) = value.rfind('/') {
-                        // move to namespace
-                        let appendage = slugify(&value[..idx]).unwrap();
-                        let value = value[idx+1..].to_owned();
-
-                        state.set(State::Create(format!("{}{}/", namespace, &appendage), value))
-                    } else {
-                        state.set(State::Create(namespace, value))
-                    }
-                })
+                Callback::from(move |title| state.set(State::Create(title)))
             };
 
-            let onkeydown = if title.is_empty() && !namespace.is_empty() {
-                let state = state.clone();
-                let namespace = namespace.clone();
-
-                Callback::from(move |ev: KeyboardEvent| {
-                    if ev.key() == "Backspace" {
-                        ev.prevent_default();
-
-                        // remove trailing '/'
-                        let namespace = &namespace[..namespace.len()-1];
-
-                        match namespace.rfind('/') {
-                            Some(idx) => {
-                                let title = namespace[idx+1..].to_owned();
-                                let namespace = namespace[..idx+1].to_owned();
-
-                                state.set(State::Create(namespace, title))
-                            }
-                            None => {
-                                state.set(State::Create(String::new(), namespace.to_owned()))
-                            }
-                        }
-                    }
-                })
-            } else if can_submit {
+            let onkeydown = if can_submit {
                 let action_create = action_create.clone();
 
                 Callback::from(move |ev: KeyboardEvent| {
@@ -171,12 +124,9 @@ pub fn menu(props: &Props) -> Html {
 
             html! {
                 <div class={classes!("d-flex", props.class.clone())}>
-                    <div class="input-group">
+                    <div class="input-group" {onkeydown}>
                         <button class="btn btn-outline-secondary" type="button" onclick={action_back}>{ "Back" }</button>
-                        if !namespace.is_empty() {
-                            <span class="input-group-text text-bg-dark">{ namespace }</span>
-                        }
-                        <input type="text" class="form-control text-bg-dark" maxlength=128 value={title.clone()} ref={input_ref} {oninput} {onkeydown}/>
+                        <TitleInput value={title.clone()} {oninput}/>
                         <button class="btn btn-primary" type="button" onclick={action_create.reform(|_| ())} disabled={!can_submit}>{ "Create" }</button>
                     </div>
                 </div>

@@ -1,3 +1,6 @@
 [submodule "app/bootstrap"]
 	path = app/bootstrap
 	url = https://github.com/twbs/bootstrap
+[submodule "app/bootstrap-icons"]
+	path = app/bootstrap-icons
+	url = https://github.com/twbs/icons

@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use ruinaio_model::{Node, slug};
 
-use web_sys::HtmlInputElement;
+use crate::input::title::{Title, TitleInput};
 
 use std::rc::Rc;
 
@@ -15,34 +15,9 @@ pub struct Props {
     pub node: Rc<Node>,
 }
 
+#[derive(Default)]
 struct State {
-    namespace: Option<String>,
-    title: String,
-    body: String,
-}
-
-enum Update {
-    Title(String),
-    Body(String),
-}
-
-impl Reducible for State {
-    type Action = Update;
-
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        match action {
-            Update::Title(title) => Rc::new(State {
-                namespace: self.namespace.clone(),
-                body: self.body.clone(),
-                title,
-            }),
-            Update::Body(body) => Rc::new(State {
-                namespace: self.namespace.clone(),
-                title: self.title.clone(),
-                body,
-            }),
-        }
-    }
+    title: Title,
 }
 
 /// A single card editor for a node.
@@ -50,43 +25,34 @@ impl Reducible for State {
 pub fn editor(props: &Props) -> Html {
     let (namespace, _) = slug::split(&props.node.slug);
 
-    let state = use_reducer(|| State {
-        namespace: namespace.map(|s| s.to_owned()),
-        title: props.node.title.clone(),
-        body: props.node.body.clone(),
+    let state = use_state(|| State {
+        title: Title {
+            namespace: namespace.map(|s| s.to_owned()),
+            title: props.node.title.clone(),
+        },
     });
 
-    // generate slug
-    let slug = slug::slugify(&state.title).unwrap_or("".into());
-    let slug = match state.namespace.clone() {
-        Some(namespace) => namespace + &slug,
-        None => slug.into_owned(),
-    };
-
-    let title_ref = use_node_ref();
-    let body_ref = use_node_ref();
+    let title_changed = props.node.title != state.title.title
+        || namespace != state.title.namespace.as_ref().map(|s| s.as_str());
 
     let oninput = {
-        let title_ref = title_ref.clone();
         let state = state.clone();
 
-        Callback::from(move |_| {
-            let value = title_ref
-                .cast::<HtmlInputElement>()
-                .unwrap()
-                .value();
-
-            // update title
-            state.dispatch(Update::Title(value));
-        })
+        Callback::from(move |title| state.set(State { title }))
     };
 
     html! {
         <div class="card text-bg-dark my-3">
             <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">{ slug }</h6>
-                <input class="mb-2 form-control text-bg-dark" type="text" maxlength=128 value={ state.title.clone() } {oninput} ref={title_ref}/>
-                <textarea class="mb-2 form-control text-bg-dark font-monospace">{ &state.body }</textarea>
+                <div class="input-group">
+                    if title_changed {
+                        <span class="input-group-text text-bg-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </span>
+                    }
+                    <TitleInput value={ state.title.clone() } {oninput}/>
+                </div>
+                <textarea class="mb-2 form-control text-bg-dark font-monospace" >{ &state.body }</textarea>
             </div>
         </div>
     }

@@ -71,7 +71,9 @@ pub fn slugify<'a>(s: &'a str) -> Result<Cow<'a, str>, Error> {
     }
 
     let length = result.as_ref().map(|s| s.len()).unwrap_or(s.len());
-    if length > 128 {
+    if length == 0 {
+        return Err(Error::Empty);
+    } else if length > 128 {
         return Err(Error::Length(length));
     }
 
