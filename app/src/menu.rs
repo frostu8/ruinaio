@@ -46,7 +46,11 @@ pub fn menu(props: &Props) -> Html {
                             <span class="input-group-text text-bg-dark">{ namespace }</span>
                         }
                         <input type="text" class="form-control text-bg-dark" maxlength=128 value={ title.title.clone() } disabled=true/>
-                        <button class="btn btn-primary" type="button" disabled=true>{ "Create" }</button>
+                        <button class="btn btn-primary" type="button" disabled=true>
+                            <div class="spinner-border spinner-border-sm text-light" role="status">
+                                <span class="visually-hidden">{ "Loading..." }</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
             }

@@ -58,12 +58,21 @@ pub fn title_input(props: &Props) -> Html {
         })
     };
 
-    let onkeydown = if state.title.is_empty() && state.namespace.is_some() {
+    let onkeydown = if state.namespace.is_some() {
         let state = state.clone();
         let oninput = props.oninput.clone();
+        let input_ref = input_ref.clone();
 
         Callback::from(move |ev: KeyboardEvent| {
-            if ev.key() == "Backspace" {
+            let input_ref = input_ref
+                .cast::<HtmlInputElement>()
+                .unwrap();
+            let selection_start = input_ref
+                .selection_start()
+                .unwrap()
+                .unwrap();
+
+            if ev.key() == "Backspace" && selection_start == 0 {
                 ev.prevent_default();
 
                 // remove trailing '/'
@@ -72,7 +81,7 @@ pub fn title_input(props: &Props) -> Html {
 
                 match namespace.rfind('/') {
                     Some(idx) => {
-                        let title = namespace[idx+1..].to_owned();
+                        let title = namespace[idx+1..].to_owned() + &state.title;
                         let namespace = namespace[..idx+1].to_owned();
 
                         let result = Title { namespace: Some(namespace), title };
@@ -80,7 +89,7 @@ pub fn title_input(props: &Props) -> Html {
                         state.set(result);
                     }
                     None => {
-                        let result = Title { namespace: None, title: namespace.to_owned() };
+                        let result = Title { namespace: None, title: namespace.to_owned() + &state.title };
                         oninput.emit(result.clone());
                         state.set(result);
                     }
