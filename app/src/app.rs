@@ -33,7 +33,7 @@ pub fn app() -> Html {
 
     html! {
         <ContextProvider<Context> {context}>
-            <div class="container-fluid row">
+            <div class="container-fluid d-flex">
                 { state.render(onnew) }
             </div>
         </ContextProvider<Context>>
@@ -48,7 +48,7 @@ struct Panel {
 impl Panel {
     pub fn render(&self, onnew: Callback<Node>) -> Html {
         html! {
-            <div class="col d-flex flex-column vh-100">
+            <div class="container d-flex flex-column vh-100">
                 <Menu class="my-3" {onnew}/>
                 <div class="overflow-scroll">
                     { for self.nodes.iter().map(|node| html! { <Editor node={Rc::clone(node)} /> }) }
