@@ -1,6 +1,6 @@
 //! Node API.
 
-use ruinaio_model::{params, node::Node, slug};
+use ruinaio_model::{params, node::Node, slug, Patch};
 
 use crate::db::Db;
 use crate::error::{Code, Error};
@@ -119,7 +119,7 @@ pub async fn update(
     let params::UpdateNode { namespace, title, body } = params.into_inner();
 
     let namespace = match namespace {
-        Some(Some(namespace)) if namespace.is_empty() => Some(None),
+        Patch::Some(namespace) if namespace.is_empty() => Patch::Null,
         namespace => namespace,
     };
 
@@ -127,17 +127,17 @@ pub async fn update(
     let slug = match (namespace, &title) {
         // updates both the namespace and title, effectively giving it an
         // entirely new slug
-        (Some(Some(namespace)), Some(title)) => {
+        (Patch::Some(namespace), Some(title)) => {
             Some(check_namespace(&namespace)?.to_owned() + &check_title(title)?)
         }
         // unsets the namespace and updates the slug
-        (Some(None), Some(title)) => {
+        (Patch::Null, Some(title)) => {
             let title = check_title(title)?;
 
             Some(title.into_owned())
         }
         // updates only the namespace
-        (Some(Some(namespace)), None) => {
+        (Patch::Some(namespace), None) => {
             let namespace = check_namespace(&namespace)?;
 
             let slug = get_slug(id, &db).await?;
@@ -146,7 +146,7 @@ pub async fn update(
             Some(namespace.to_owned() + title)
         }
         // unsets the namespace
-        (Some(None), None) => {
+        (Patch::Null, None) => {
             let slug = get_slug(id, &db).await?;
 
             let (_, title) = slug::split(&slug);
@@ -154,7 +154,7 @@ pub async fn update(
             Some(title.to_owned())
         }
         // updates only the slug
-        (None, Some(title)) => {
+        (Patch::None, Some(title)) => {
             let title = check_title(title)?;
 
             let slug = get_slug(id, &db).await?;
@@ -166,7 +166,7 @@ pub async fn update(
             }
         }
         // updates nothing!
-        (None, None) => None
+        (Patch::None, None) => None
     };
 
     // update node in database

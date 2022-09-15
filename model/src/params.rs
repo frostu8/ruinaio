@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::Patch;
+
 /// Request query parameters for `GET /nodes`
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
@@ -22,9 +24,8 @@ impl Default for ListNodes {
 /// Request body parameters for `PATCH /node/{node.id}`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateNode {
-    /// `Some(None)` unsets the namespace.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub namespace: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Patch::is_none")]
+    pub namespace: Patch<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

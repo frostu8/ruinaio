@@ -13,3 +13,11 @@ pub struct Node {
     pub body: String,
 }
 
+impl Node {
+    /// Gets the namespace the node is in.
+    pub fn namespace(&self) -> Option<&str> {
+        let (namespace, _) = crate::slug::split(&self.slug);
+        namespace
+    }
+}
+

@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use std::rc::Rc;
 
-use crate::node::Editor;
+use crate::node::{Editor, Viewer};
 use crate::menu::Menu;
 
 use reqwest::Client;
@@ -14,7 +14,7 @@ use ruinaio_model::Node;
 /// The main application logic.
 #[function_component(App)]
 pub fn app() -> Html {
-    let state = use_state(Panel::default);
+    let state = use_state(Vec::<NodeState>::default);
 
     let onnew = {
         let state = state.clone();
@@ -22,7 +22,7 @@ pub fn app() -> Html {
         Callback::from(move |node| {
             let mut new_state = (*state).clone();
 
-            new_state.nodes.push(Rc::new(node));
+            new_state.push(NodeState::editing(Rc::new(node)));
             state.set(new_state);
         })
     };
@@ -31,30 +31,57 @@ pub fn app() -> Html {
         api_client: Client::new(),
     };
 
+    let nodes = {
+        state
+            .iter()
+            .enumerate()
+            .map(|(i, node)| {
+                let state_ref = state.clone();
+
+                if node.editing {
+                    let onupdate = Callback::from(move |node| {
+                        let mut nodes = (*state_ref).clone();
+                        
+                        nodes[i] = NodeState {
+                            editing: false,
+                            node: Rc::new(node),
+                        };
+
+                        state_ref.set(nodes);
+                    });
+
+                    html! { <Editor node={node.node.clone()} {onupdate} /> }
+                } else {
+                    html! { <Viewer node={node.node.clone()} /> }
+                }
+            })
+    };
+
     html! {
         <ContextProvider<Context> {context}>
-            <div class="container-fluid d-flex">
-                { state.render(onnew) }
+            <div class="container d-flex flex-column vh-100">
+                <Menu class="my-3" {onnew}/>
+                <div class="overflow-scroll">
+                    { for nodes }
+                </div>
             </div>
         </ContextProvider<Context>>
     }
 }
 
-#[derive(Clone, Default)]
-struct Panel {
-    nodes: Vec<Rc<Node>>,
+#[derive(Clone)]
+struct NodeState {
+    node: Rc<Node>,
+    editing: bool,
 }
 
-impl Panel {
-    pub fn render(&self, onnew: Callback<Node>) -> Html {
-        html! {
-            <div class="container d-flex flex-column vh-100">
-                <Menu class="my-3" {onnew}/>
-                <div class="overflow-scroll">
-                    { for self.nodes.iter().map(|node| html! { <Editor node={Rc::clone(node)} /> }) }
-                </div>
-            </div>
-        }
+impl NodeState {
+    fn editing(node: Rc<Node>) -> NodeState {
+        NodeState { node, editing: true }
+    }
+
+    fn viewing(node: Rc<Node>) -> NodeState {
+        NodeState { node, editing: false }
     }
 }
 
