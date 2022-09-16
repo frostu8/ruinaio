@@ -1,7 +1,6 @@
 use super::Context;
 
 use yew::prelude::*;
-use yew::platform::spawn_local;
 
 use std::rc::Rc;
 
@@ -16,32 +15,34 @@ use ruinaio_model::Node;
 #[function_component(App)]
 pub fn app() -> Html {
     let context = Context { api_client: Client::new() };
-    let state = use_state(Vec::<NodeState>::default);
 
-    // TODO: move this to its own dedicated system, out of this poor function
-    // component
-    if state.is_empty() {
-        let api_client = context.api_client.clone();
-        let state_ref = state.clone();
-        spawn_local(async move {
-            let res = api_client.get(
-                format!("{}/api/v1/nodes", super::origin())
-            )
-                .send()
-                .await
-                .unwrap();
+    let fallback = html! {
+        <div class="text-center my-3">
+            <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">{ "Loading..." }</span>
+            </div>
+        </div>
+    };
 
-            if res.status().is_success() {
-                let nodes = res.json::<Vec<Node>>().await.unwrap();
-
-                state_ref.set(nodes.into_iter().map(|n| NodeState::viewing(Rc::new(n))).collect());
-            } else {
-                let error = res.json::<ruinaio_model::Error>().await.unwrap();
-
-                // TODO: handle error
-            }
-        });
+    html! {
+        <ContextProvider<Context> {context}>
+            <Suspense {fallback}>
+                <Content />
+            </Suspense>
+        </ContextProvider<Context>>
     }
+}
+
+#[function_component(Content)]
+fn content() -> HtmlResult {
+    let nodes = match crate::node::use_nodes()? {
+        Ok(nodes) => nodes,
+        Err(e) => return Ok(html! {
+            <h1>{ e }</h1>
+        }),
+    };
+
+    let state = use_state(|| nodes.into_iter().map(|n| NodeState::viewing(n)).collect::<Vec<NodeState>>());
 
     let onnew = {
         let state = state.clone();
@@ -102,16 +103,14 @@ pub fn app() -> Html {
             })
     };
 
-    html! {
-        <ContextProvider<Context> {context}>
-            <div class="container d-flex flex-column vh-100">
-                <Menu class="my-3" {onnew}/>
-                <div class="overflow-scroll">
-                    { for nodes }
-                </div>
+    Ok(html! {
+        <div class="container d-flex flex-column vh-100">
+            <Menu class="my-3" {onnew}/>
+            <div class="overflow-scroll">
+                { for nodes }
             </div>
-        </ContextProvider<Context>>
-    }
+        </div>
+    })
 }
 
 #[derive(Clone)]

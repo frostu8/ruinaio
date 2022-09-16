@@ -20,13 +20,13 @@ use std::rc::Rc;
 use std::ops::Deref;
 
 #[hook]
-fn use_node(id: i32) -> SuspensionResult<Result<Rc<Node>, Error>> {
+pub fn use_nodes() -> SuspensionResult<Result<Vec<Rc<Node>>, Error>> {
     let Context { api_client } = use_context::<Context>().unwrap();
 
-    let state = use_state(|| None::<Result<Rc<Node>, Error>>);
+    let state = use_state(|| None::<Result<Vec<Rc<Node>>, Error>>);
 
     match state.deref() {
-        Some(Ok(node)) if node.id == id => Ok(Ok(Rc::clone(node))),
+        Some(Ok(nodes)) => Ok(Ok(nodes.clone())),
         Some(Err(err)) => Ok(Err(err.clone())),
         _ => {
             // create suspension
@@ -35,16 +35,16 @@ fn use_node(id: i32) -> SuspensionResult<Result<Rc<Node>, Error>> {
             // fetch node
             spawn_local(async move {
                 let res = api_client.get(
-                    format!("{}/api/v1/node/{}", origin(), id)
+                    format!("{}/api/v1/nodes", origin())
                 )
                     .send()
                     .await
                     .unwrap();
 
                 if res.status().is_success() {
-                    let node = res.json::<Node>().await.unwrap();
+                    let nodes = res.json::<Vec<Node>>().await.unwrap();
 
-                    state.set(Some(Ok(Rc::new(node))));
+                    state.set(Some(Ok(nodes.into_iter().map(|node| Rc::new(node)).collect())));
                 } else {
                     let error = res.json::<Error>().await.unwrap();
 
