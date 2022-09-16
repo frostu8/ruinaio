@@ -148,7 +148,7 @@ pub fn editor(props: &Props) -> Html {
                     }
                     <TitleInput value={ state.title.clone() } {oninput}/>
                 </div>
-                <textarea class="mb-2 form-control text-bg-dark font-monospace" ref={body_ref} value={ props.node.body.clone() } />
+                <textarea class="mb-2 form-control text-bg-dark font-monospace" ref={body_ref} value={ props.node.body.clone() } rows=16/>
                 <button class="btn btn-primary" {onclick} disabled={!can_submit}>{ "Save" }</button>
             </div>
         </div>
