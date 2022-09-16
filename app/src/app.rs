@@ -15,8 +15,8 @@ use ruinaio_model::Node;
 /// The main application logic.
 #[function_component(App)]
 pub fn app() -> Html {
-    let state = use_state(Vec::<NodeState>::default);
     let context = Context { api_client: Client::new() };
+    let state = use_state(Vec::<NodeState>::default);
 
     // TODO: move this to its own dedicated system, out of this poor function
     // component
@@ -75,18 +75,29 @@ pub fn app() -> Html {
 
                     html! { <Editor node={node.node.clone()} {onupdate} /> }
                 } else {
-                    let onedit = Callback::from(move |node| {
+                    let onedit = {
+                        let state_ref = state.clone();
+                        Callback::from(move |node| {
+                            let mut nodes = (*state_ref).clone();
+                            
+                            nodes[i] = NodeState {
+                                editing: true,
+                                node,
+                            };
+
+                            state_ref.set(nodes);
+                        })
+                    };
+
+                    let ondelete = Callback::from(move |()| {
                         let mut nodes = (*state_ref).clone();
-                        
-                        nodes[i] = NodeState {
-                            editing: true,
-                            node,
-                        };
+
+                        nodes.remove(i);
 
                         state_ref.set(nodes);
                     });
 
-                    html! { <Viewer node={node.node.clone()} {onedit} /> }
+                    html! { <Viewer node={node.node.clone()} {onedit} {ondelete} /> }
                 }
             })
     };
