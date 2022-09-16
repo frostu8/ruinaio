@@ -54,7 +54,7 @@ pub fn editor(props: &Props) -> Html {
                     <div class="input-group mb-2">
                         <TitleInput value={ state.title.clone() }/>
                     </div>
-                    <textarea class="mb-2 form-control text-bg-dark font-monospace">{ &state.body }</textarea>
+                    <textarea class="mb-2 form-control text-bg-dark font-monospace" value={ props.node.body.clone() } rows=16/>
                     <button class="btn btn-primary" disabled=true>
                         <div class="spinner-border spinner-border-sm text-light" role="status">
                             <span class="visually-hidden">{ "Loading..." }</span>
