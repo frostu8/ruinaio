@@ -13,6 +13,9 @@ use std::rc::Rc;
 pub struct Props {
     /// The node to view.
     pub node: Rc<Node>,
+    /// An event that is called to edit the node.
+    #[prop_or_default]
+    pub onedit: Callback<Rc<Node>>,
 }
 
 /// A single card viewer for a node.
@@ -34,10 +37,22 @@ pub fn viewer(props: &Props) -> Html {
     let body_div = gloo::utils::document().create_element("div").unwrap();
     body_div.set_inner_html(&body);
 
+    let onedit = {
+        let onedit = props.onedit.clone();
+        let node = props.node.clone();
+
+        Callback::from(move |_| onedit.emit(node.clone()))
+    };
+
     html! {
         <div class="card text-bg-dark my-3">
             <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">{ &props.node.slug }</h6>
+                <div class="d-flex">
+                    <h6 class="card-subtitle me-auto text-muted">{ &props.node.slug }</h6>
+                    <button class="btn btn-link p-0" onclick={onedit}>
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                </div>
                 <h1 class="card-title">{ &props.node.title }</h1>
                 { Html::VRef(body_div.into()) }
             </div>

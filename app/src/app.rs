@@ -1,6 +1,7 @@
 use super::Context;
 
 use yew::prelude::*;
+use yew::platform::spawn_local;
 
 use std::rc::Rc;
 
@@ -15,6 +16,32 @@ use ruinaio_model::Node;
 #[function_component(App)]
 pub fn app() -> Html {
     let state = use_state(Vec::<NodeState>::default);
+    let context = Context { api_client: Client::new() };
+
+    // TODO: move this to its own dedicated system, out of this poor function
+    // component
+    if state.is_empty() {
+        let api_client = context.api_client.clone();
+        let state_ref = state.clone();
+        spawn_local(async move {
+            let res = api_client.get(
+                format!("{}/api/v1/nodes", super::origin())
+            )
+                .send()
+                .await
+                .unwrap();
+
+            if res.status().is_success() {
+                let nodes = res.json::<Vec<Node>>().await.unwrap();
+
+                state_ref.set(nodes.into_iter().map(|n| NodeState::viewing(Rc::new(n))).collect());
+            } else {
+                let error = res.json::<ruinaio_model::Error>().await.unwrap();
+
+                // TODO: handle error
+            }
+        });
+    }
 
     let onnew = {
         let state = state.clone();
@@ -25,10 +52,6 @@ pub fn app() -> Html {
             new_state.push(NodeState::editing(Rc::new(node)));
             state.set(new_state);
         })
-    };
-
-    let context = Context {
-        api_client: Client::new(),
     };
 
     let nodes = {
@@ -52,7 +75,18 @@ pub fn app() -> Html {
 
                     html! { <Editor node={node.node.clone()} {onupdate} /> }
                 } else {
-                    html! { <Viewer node={node.node.clone()} /> }
+                    let onedit = Callback::from(move |node| {
+                        let mut nodes = (*state_ref).clone();
+                        
+                        nodes[i] = NodeState {
+                            editing: true,
+                            node,
+                        };
+
+                        state_ref.set(nodes);
+                    });
+
+                    html! { <Viewer node={node.node.clone()} {onedit} /> }
                 }
             })
     };
